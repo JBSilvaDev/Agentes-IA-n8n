@@ -2,7 +2,7 @@
 
 Nesta aula foi desenvolvido um fluxo automatizado para processar solicitações de reembolso através de um formulário web. O fluxo inclui:
 
-- Gatilho via webhook para capturar respostas do formulário
+- Gatilho via webhook para capturar respostas do formulário na plataforma [Tally](https://tally.so)
 - Processamento das respostas pelo agente de IA
 - Consulta a uma planilha online (Google Sheets) para obter dados do cliente
 - Análise de sentimento do comentário do cliente
