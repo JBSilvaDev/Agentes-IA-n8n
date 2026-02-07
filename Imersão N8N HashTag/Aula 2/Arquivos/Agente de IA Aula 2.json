@@ -1,0 +1,802 @@
+{
+  "name": "Agente de IA aula 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b678b275-66ed-433d-b4a9-ec24a8b59526",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d08f6842-60cd-44a9-bfbc-0dabfad15e79",
+      "name": "Webhook",
+      "webhookId": "b678b275-66ed-433d-b4a9-ec24a8b59526"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.data.fields }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Você é um agente que processa respostas de um formulário de reembolso.\n\n\nVocê deve trabalhar apenas com os dados recebidos na entrada e pela planilha contida na tool.\n\n\nAs informações que você irá precisar retornar são as seguintes:\n\n\n- nome: Nome do cliente proveniente do formulário\n\n- email: E-mail do cliente proveniente do formulário\n\n- produto_reembolso: De qual produto o cliente está pedindo reembolso, proveniente do formulário\n\n- comentario: Comentário por escrito do cliente, proveniente do formulário\n\n- sentimento: Uma análise de sentimento a partir do comentário do cliente no formulário (instruções mais à frente no prompt)\n\n- cliente_encontrado: uma informação de verdadeiro ou falso informando se encontrou o cliente na planilha (tool)\n\n- nome_completo: Nome do cliente proveniente da planilha (tool)\n\n- total_gasto_cliente: Valor total gasto pelo cliente proveniente da planilha (tool)\n\n- dias_desde_compra: há quantos dias o cliente fez a última compra, calculado a partir dos dados da planilha (instruções mais à frente no prompt)\n\n\n\n\nSiga rigorosamente as etapas abaixo.\n\n\n---\n\n\n### 1) Extração dos campos do formulário\n\nExtraia os seguintes campos da resposta do formulário:\n\n- Nome\n\n- Email\n\n- Qual produto que você deseja reembolso?\n\n- Comente aqui o que houve\n\n\nSe algum campo de texto não existir, retorne um texto vazio \"\".\n\n\n---\n\n\n### 2) Busca do cliente na base\n\n- Normalize o email (trim + lowercase).\n\n- Use o email como ÚNICA chave para buscar o cliente na base (Google Sheets) via tool.\n\n- Nunca invente dados do cliente.\n\n\n- Se encontrar o cliente:\n\n  - cliente_encontrado = true\n\n  - Preencha com os dados exatos da planilha:\n\n    - nome_completo: valor da coluna \"nome_cliente\"\n\n    - total_gasto_cliente: valor da coluna \"total_gasto_cliente\"\n\n\n- Se não encontrar o cliente na planilha:\n\n  - cliente_encontrado = false\n\n  - nome_completo: “”\n\n  - total_gasto_cliente: “”\n\n\n\n\n\n---\n\n\n### 3) Datas e prazo\n\n- Calcule a informação dias_desde_compra, subtraindo a data atual da data da última compra do cliente\n\n- A data da última compra vem da planilha na tool na coluna data_ultima_compra.\n\n- A data atual: {{ $now }}\n\n- Considere apenas a parte da data (dia/mês/ano) e ignore o horário\n\n- Você NÃO deve gerar data atual por conta própria.\n\n\nCom essas duas datas:\n\n- Calcule a quantidade de dias corridos entre data_atual e data_ultima_compra.\n\n- O cálculo deve considerar apenas dias corridos.\n\n- Se data_ultima_compra ou data_atual não existirem, dias_desde_compra deve ser 0 (zero).\n\n\n⚠️ Importante:\n\n- Você NÃO deve decidir aprovação ou negação de reembolso.\n\n- Apenas calcule e informe os dias desde a compra.\n\n\n---\n\n\n### 4) Análise de sentimento\n\nAnalise exclusivamente o texto do campo \"Comente aqui o que houve\" e classifique em:\n\n- positivo\n\n- neutro\n\n- negativo\n\n- muito_negativo\n\n\nCritérios:\n\nPOSITIVO: Texto educado ou positivo.\n\nNEUTRO: Texto objetivo, calmo ou vazio.\n\nNEGATIVO: Frustração clara ou tom ríspido.\n\nMUITO_NEGATIVO: Agressivo, xingamentos, ameaças de procon, processos, reclame aqui ou outros tipos de ameaça ou CAPS LOCK.\n\n\nNa dúvida entre negativo e muito negativo, seja conservador, escolha negativo.\n\n\n---\n\n\n### 5) Formato de saída (OBRIGATÓRIO)\n\nRetorne APENAS um JSON cru.\n\nNÃO use markdown (sem ```json).\n\n\nExemplo de estrutura desejada:\n\n\n{\n\n  \"nome\": \"Texto ou vazio\",\n\n  \"email\": \"Texto ou vazio\",\n\n  \"produto_reembolso\": \"Texto ou vazio\",\n\n  \"comentario\": \"Texto ou vazio\",\n\n  \"sentimento\": \"Texto ou vazio\",\n\n  \"cliente_encontrado\": true ou false,\n\n  \"nome_completo\": \"Texto ou vazio\",\n\n  \"total_gasto_cliente\": numero,\n\n  \"dias_desde_compra\": numero,\n\n  }\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "627ee013-5c41-49d1-955f-e9aa6924dde7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1-L54j6oIgrmt_eOlb07tgo7Gs_kdYlKDAix7tkKz5iw",
+          "mode": "list",
+          "cachedResultName": "Aula 2 Imersão - Base Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-L54j6oIgrmt_eOlb07tgo7Gs_kdYlKDAix7tkKz5iw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 726466171,
+          "mode": "list",
+          "cachedResultName": "Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-L54j6oIgrmt_eOlb07tgo7Gs_kdYlKDAix7tkKz5iw/edit#gid=726466171"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        368,
+        224
+      ],
+      "id": "e252f20f-7e98-44fa-be31-f9b120938b35",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FyBI2ow5D6foDesq",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        160,
+        208
+      ],
+      "id": "c7824c69-85b7-4173-8fe1-c2032e1cfd61",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8SLVaTlFH0caefdK",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\n  \"nome\": \"Juliano Silva\",\n\n  \"email\": \"email@email.com\",\n\n  \"produto_reembolso\": \"Software de Contabilidade\",\n\n  \"comentario\": \"Nao funciona de jeito algum na minha maquina\",\n\n  \"sentimento\": \"POSITIVO\",\n\n  \"cliente_encontrado\": true,\n\n  \"nome_completo\": \"Bruno Cliente\",\n\n  \"total_gasto_cliente\": 100,\n\n  \"dias_desde_compra\": 100\n\n  }"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        208
+      ],
+      "id": "0511f633-ebfa-483c-8811-e6cf01081e59",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "187542c4-8c66-400f-90e3-8f963c2bc027",
+              "leftValue": "={{ $json.output.dias_desde_compra }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        560,
+        0
+      ],
+      "id": "ab8ef916-8ed2-4f02-8df9-df2994030ae1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "content": "Cliente comum",
+        "width": 560
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        768,
+        -112
+      ],
+      "id": "a4ab1f67-023d-4df1-9ac4-5696ef4e0363",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Cliente VIP\n",
+        "width": 560,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        64
+      ],
+      "id": "5807021d-89c8-4cbc-8336-e2a912880461",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Cliente Reclamão\n\n",
+        "width": 560,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        240
+      ],
+      "id": "9ce18cce-c9e9-4276-8b23-875180d2b515",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cd023fd7-7800-4a58-863e-140acb2e7a13",
+              "leftValue": "={{ $('AI Agent').item.json.output.total_gasto_cliente }}",
+              "rightValue": 3000,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            },
+            {
+              "id": "0a33e263-3375-4d50-8d38-42e30e4267a3",
+              "leftValue": "={{ $('AI Agent').item.json.output.sentimento }}",
+              "rightValue": "muito_negativo",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        784,
+        -80
+      ],
+      "id": "bd9d510e-a19c-471c-a1d7-3281ee7ddb3a",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('AI Agent').item.json.output.email }}",
+        "subject": "Retorno sobre sua solicitação de reembolso",
+        "message": "=Olá, {{ $('AI Agent').item.json.output.nome_completo }}.  Analisei sua solicitação de reembolso.  Verifiquei aqui que a compra foi efetuada há mais de 7 dias. Como o prazo de garantia incondicional é de 7 dias corridos, infelizmente não conseguiremos prosseguir com o reembolso.  Caso tenha dúvidas sobre o acesso ou uso do produto, nossa equipe de suporte continua à disposição para te ajudar a tirar o melhor proveito dele.  Atenciosamente,  IA N8N",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        -96
+      ],
+      "id": "d867d7b3-e3cd-4b47-a9f4-58ba986ed126",
+      "name": "Send a message",
+      "webhookId": "4ccee098-ff7b-4f4a-b6f2-c4c86101f931",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hmrbuuU24IHCXyNv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9c84f7a5-fa4c-498f-8ba4-88ce1aaeaa38",
+              "leftValue": "={{ $('AI Agent').item.json.output.total_gasto_cliente }}",
+              "rightValue": 3000,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        976,
+        96
+      ],
+      "id": "363c0f9c-2b9c-4963-a854-12daeaed20a0",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('AI Agent').item.json.output.email }}",
+        "subject": "Atualização sobre seu pedido de reembolso",
+        "message": "=Olá, {{ $('AI Agent').item.json.output.nome_completo }}.\n\nRecebi sua solicitação de reembolso. Notei que o prazo contratual de 7 dias já expirou, que é o prazo de garantia do produto.\n\nPorém, como você é um dos nossos melhores clientes, não quero encerrar seu caso automaticamente. Encaminhei seu pedido pessoalmente para a nossa equipe financeira analisar uma exceção.\n\nEm até 24h a nossa equipe entrará em contato com você para dar um retorno.\n\nAtenciosamente, \n\nIA N8N",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        80
+      ],
+      "id": "89ee498b-e2d2-453b-a9a4-7f4df7ce2ae0",
+      "name": "Send a message1",
+      "webhookId": "4ccee098-ff7b-4f4a-b6f2-c4c86101f931",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hmrbuuU24IHCXyNv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9c84f7a5-fa4c-498f-8ba4-88ce1aaeaa38",
+              "leftValue": "={{ $('AI Agent').item.json.output.sentimento }}",
+              "rightValue": "muito_negativo",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1168,
+        272
+      ],
+      "id": "efa6ecee-3250-47e8-89c7-000c52c61125",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('AI Agent').item.json.output.email }}",
+        "subject": "Recebemos sua mensagem - Caso escalado para a Gerência",
+        "message": "=Olá, {{ $('AI Agent').item.json.output.nome_completo }}.\n\nLi atentamente seu comentário e lamento sua insatisfação.\n\nO sistema identificou que a compra está fora do prazo de garantia de 7 dias. No entanto, dada a seriedade do seu relato, optei por não finalizar o atendimento por aqui.\n\nEscalei seu caso com prioridade para o nosso gerente de suporte. Ele vai analisar a situação e retornará o contato o mais breve possível para resolvermos isso.\n\nAtenciosamente, \n\nAlon",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        256
+      ],
+      "id": "c5392487-3075-4b15-a797-e7945657b048",
+      "name": "Send a message2",
+      "webhookId": "4ccee098-ff7b-4f4a-b6f2-c4c86101f931",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hmrbuuU24IHCXyNv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# Loop over input items and add a new field called 'my_new_field' to the JSON of each one\nfor item in _items:\n  item[\"json\"][\"cliente\"] = \"Reclamao\"\nreturn _items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        272
+      ],
+      "id": "2088f74e-8f51-4294-b828-0ba696b2c62d",
+      "name": "Code in Python3"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# Loop over input items and add a new field called 'my_new_field' to the JSON of each one\nfor item in _items:\n  item[\"json\"][\"cliente\"] = \"VIP\"\nreturn _items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        96
+      ],
+      "id": "2cd2e001-777f-459a-93fd-0f2d3af04cc4",
+      "name": "Code in Python2"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# Loop over input items and add a new field called 'my_new_field' to the JSON of each one\nfor item in _items:\n  item[\"json\"][\"cliente\"] = \"Comum\"\nreturn _items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -80
+      ],
+      "id": "7cfd2afc-dd76-4dae-9a56-6b63f09deec8",
+      "name": "Code in Python1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "224eecf1-063e-4197-96ba-0bcdf11c2a35",
+              "name": "cliente",
+              "value": "={{$json[\"cliente\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "1be0725c-e15f-405e-a452-7ce6174ca3ea",
+              "name": "nome",
+              "value": "={{ $('AI Agent').item.json.output.nome_completo }}",
+              "type": "string"
+            },
+            {
+              "id": "0488d287-31e0-4f4a-826b-d13ae46e2685",
+              "name": "email",
+              "value": "={{ $('AI Agent').item.json.output.email }}",
+              "type": "string"
+            },
+            {
+              "id": "f171a308-d925-4451-aa3c-87b4a22ecefd",
+              "name": "produto",
+              "value": "={{ $('AI Agent').item.json.output.produto_reembolso }}",
+              "type": "string"
+            },
+            {
+              "id": "509d4ae3-8bfd-4f56-a380-c4e09048e885",
+              "name": "comentario",
+              "value": "={{ $('AI Agent').item.json.output.comentario }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1744,
+        80
+      ],
+      "id": "51e68052-f2c2-490a-bdad-93bd48ac8f7f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "pythonNative",
+        "pythonCode": "# Loop over input items and add a new field called 'my_new_field' to the JSON of each one\nif _item[\"json\"][\"cliente\"] == \"Comum\":\n  _item[\"json\"][\"msg\"] = \"\"\nelif _item[\"json\"][\"cliente\"] == \"Reclamao\":\n  _item[\"json\"][\"msg\"] =f\"\"\"\n⚠️ Atenção aqui, gente.\n\nTemos um cliente que pediu reembolso fora do prazo, mas mandou uma mensagem bem pesada..\n\nO comentário dele foi esse: {_item[\"json\"][\"comentario\"]}\n\nPra evitar que ele vá pro Reclame Aqui ou procon, eu já respondi dizendo que escalei o caso pra gerência. Conseguem dar uma atenção pra esse caso por favor?\n\nCliente: {_item[\"json\"][\"nome\"]}\n\nE-mail: {_item[\"json\"][\"email\"]}\n\nProduto: {_item[\"json\"][\"produto\"]}\n  \"\"\"\nelif _item[\"json\"][\"cliente\"] == \"VIP\":\n  _item[\"json\"][\"msg\"] = f\"\"\"\n[Pedido de Reembolso fora do Prazo] \nPessoal, chegou um pedido de reembolso de um cliente que estourou o prazo de 7 dias (tá com [DIAS DESDE COMPRA] dias).\n\nO sistema barrou, mas como ele é VIP, peço que verifiquem com atenção e avaliem reembolsar o aluno.\n\nAvisei pra ele que a gente ia analisar com carinho e dar um retorno em 24h. Conseguem ver com o financeiro se liberamos essa exceção pra não perder o cliente?\n\nCliente: {_item[\"json\"][\"nome\"]}\n\nE-mail: {_item[\"json\"][\"email\"]}\n\nProduto: {_item[\"json\"][\"produto\"]}\n\"\"\"\nreturn _item\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        80
+      ],
+      "id": "98cb6673-3780-4f9e-b8fa-20bf64142e98",
+      "name": "Code in Python"
+    },
+    {
+      "parameters": {
+        "chatId": "752290106",
+        "text": "={{ $json.msg }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2112,
+        80
+      ],
+      "id": "90759ba7-9936-4a9a-9150-a3390e1c3dc7",
+      "name": "Send a text message",
+      "webhookId": "5becab09-4177-4e9f-bcbe-5aa1d254ea43",
+      "credentials": {
+        "telegramApi": {
+          "id": "XGaRtS47Xmi514E1",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "devtestejb.app.n8n.cloud",
+            "user-agent": "Tally Webhooks",
+            "content-length": "1234",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "baggage": "sentry-environment=production,sentry-release=4c2e48e57faa06db96a975192c30c64ed5084765,sentry-public_key=6af4b6673f1648edaa8fef3f2ca43405,sentry-trace_id=9487b02fe33d912b026c247b6e4c3f44,sentry-org_id=407628",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "34.96.41.146",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "BE",
+            "cf-ray": "9c8a8622d494ecf8-LHR",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "sentry-trace": "9487b02fe33d912b026c247b6e4c3f44-bcc3893a6c27f9e8",
+            "x-forwarded-for": "34.96.41.146, 172.69.224.140",
+            "x-forwarded-host": "devtestejb.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-46-d85945c6c-qtgr2",
+            "x-is-trusted": "yes",
+            "x-real-ip": "34.96.41.146"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "eventId": "441974ef-5e20-4b4d-a1ec-09f4849f79cd",
+            "eventType": "FORM_RESPONSE",
+            "createdAt": "2026-02-04T13:30:40.378Z",
+            "data": {
+              "responseId": "xXAeV7E",
+              "submissionId": "xXAeV7E",
+              "respondentId": "9qdaMrV",
+              "formId": "obGQr5",
+              "formName": "Solicitação de Reembolso",
+              "createdAt": "2026-02-04T13:30:40.000Z",
+              "fields": [
+                {
+                  "key": "question_Mb91q0",
+                  "label": "Nome Completo",
+                  "type": "INPUT_TEXT",
+                  "value": "JULIANO SILVA"
+                },
+                {
+                  "key": "question_xpeVlo",
+                  "label": "Qual o seu melhor e-mail?",
+                  "type": "INPUT_EMAIL",
+                  "value": "bruno.1@email.com"
+                },
+                {
+                  "key": "question_ZNp9Zy",
+                  "label": "Qual produto que você deseja reembolso?",
+                  "type": "MULTIPLE_CHOICE",
+                  "value": [
+                    "a3dcf348-b0cc-4abc-802d-1d72546c099e"
+                  ],
+                  "options": [
+                    {
+                      "id": "a785929d-3c98-4ab7-9033-c7fadc0586ca",
+                      "text": "Software de Contabilidade"
+                    },
+                    {
+                      "id": "a3dcf348-b0cc-4abc-802d-1d72546c099e",
+                      "text": "Software de Gestão de Projetos"
+                    },
+                    {
+                      "id": "83533b5d-3ea5-42de-bb4d-4338088429d4",
+                      "text": "Software de edição de vídeo"
+                    },
+                    {
+                      "id": "7db237e7-9e81-4fe9-bf3e-7ed0a71f366b",
+                      "text": "Plataforma de criação de sites"
+                    },
+                    {
+                      "id": "c5cfcf2e-4c83-4ec8-a250-d5b56f8a1c92",
+                      "text": "Plataforma de CRM de Vendas"
+                    }
+                  ]
+                },
+                {
+                  "key": "question_N6eqRQ",
+                  "label": "Comente aqui o que houve",
+                  "type": "TEXTAREA",
+                  "value": "Nao funciona de jeito algum na minha maquina"
+                }
+              ]
+            }
+          },
+          "webhookUrl": "https://devtestejb.app.n8n.cloud/webhook-test/b678b275-66ed-433d-b4a9-ec24a8b59526",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Code in Python2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Code in Python1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message2": {
+      "main": [
+        [
+          {
+            "node": "Code in Python3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "98a04e0b-5fb2-411f-b2a7-eb1eb0287f78",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6cce44344c0fa103c8145ecf70f98e0833283d827e9fbaf9363c38dc794c4660"
+  },
+  "id": "7-c_e1zPY0D-3NP0M1SZC",
+  "tags": []
+}
