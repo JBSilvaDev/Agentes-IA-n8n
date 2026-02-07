@@ -15,7 +15,7 @@ Nesta aula foi desenvolvido um sistema completo de atendimento automatizado comp
 
 #### Agente Financeiro ([Ver JSON](./Arquivos/SubAgentes/Agente%20Financeiro.json))
 - Especialista em questões financeiras e operacionais
-- Consulta status de pagamentos e débitos dos clientes em planilha online
+- Consulta status de pagamentos e débitos dos clientes em [planilha online](./Arquivos/atendimento_clientes.xlsx)
 - Gera segunda via de boletos e orienta sobre regularização de pagamentos
 - Trabalha com empatia e foco na solução, atuando como parceiro de negócios
 
